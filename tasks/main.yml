@@ -1,0 +1,28 @@
+---
+
+- name: Check java is already installed
+  shell: java -version 
+  register: java_exist
+  ignore_errors: yes
+
+- name: Fail if java was not properly installed
+  fail: msg="Java was not properly installed. Please have a working java."
+  when: "'not found' in java_exist.stderr"
+
+- name: Install Elasticsearch GPG Key
+  rpm_key: state=present key=https://packages.elastic.co/GPG-KEY-elasticsearch
+
+- name: Creates Elasticsearch repository
+  template: src=elasticsearch.repo.j2 dest=/etc/yum.repos.d/elasticsearch.repo
+
+- name: Install Elasticsearch
+  yum: name=elasticsearch state=latest
+
+- name: Create Log directory
+  file: path=/var/log/elasticsearch state=directory
+
+- name: Change the log_path settings
+  lineinfile: 'dest=/etc/elasticsearch/elasticsearch.yml regexp="^#?path.logs:" line="path.logs: /var/log/elasticsearch"'
+
+- name: Install Head plugin
+  command: /usr/share/elasticsearch/bin/plugin install mobz/elasticsearch-head creates=/usr/share/elasticsearch/plugins/head
